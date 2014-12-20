@@ -150,6 +150,10 @@ enum {
 	MDP_YCBYCR_H2V1,  /* YCbYCr interleave */
 	MDP_RGB_565_TILE,	  /* RGB 565 in tile format */
 	MDP_BGR_565_TILE,	  /* BGR 565 in tile format */
+	MDP_ARGB_1555,	/*ARGB 1555*/
+	MDP_RGBA_5551,	/*RGBA 5551*/
+	MDP_ARGB_4444,	/*ARGB 4444*/
+	MDP_RGBA_4444,	/*RGBA 4444*/
 	MDP_IMGTYPE_LIMIT,
 	MDP_RGB_BORDERFILL,	/* border fill pipe */
 	MDP_FB_FORMAT = MDP_IMGTYPE2_START,    /* framebuffer format */
@@ -545,6 +549,23 @@ struct mdp_scale_data {
 };
 
 /**
+ * enum mdp_overlay_pipe_type - Different pipe type set by userspace
+ *
+ * @PIPE_TYPE_AUTO:    Not specified, pipe will be selected according to flags.
+ * @PIPE_TYPE_VIG:     VIG pipe.
+ * @PIPE_TYPE_RGB:     RGB pipe.
+ * @PIPE_TYPE_DMA:     DMA pipe.
+ * @PIPE_TYPE_MAX:     Used to track maximum number of pipe type.
+ */
+enum mdp_overlay_pipe_type {
+	PIPE_TYPE_AUTO = 0,
+	PIPE_TYPE_VIG,
+	PIPE_TYPE_RGB,
+	PIPE_TYPE_DMA,
+	PIPE_TYPE_MAX,
+};
+
+/**
  * struct mdp_overlay - overlay surface structure
  * @src:	Source image information (width, height, format).
  * @src_rect:	Source crop rectangle, portion of image that will be fetched.
@@ -566,6 +587,7 @@ struct mdp_scale_data {
  *		The color should be in same format as the source image format.
  * @flags:	This is used to customize operation of overlay. See MDP flags
  *		for more information.
+ * @pipe_type:  Used to specify the type of overlay pipe.
  * @user_data:	DEPRECATED* Used to store user application specific information.
  * @bg_color:	Solid color used to fill the overlay surface when no source
  *		buffer is provided.
@@ -603,6 +625,7 @@ struct mdp_overlay {
 	uint32_t blend_op;
 	uint32_t transp_mask;
 	uint32_t flags;
+	uint32_t pipe_type;
 	uint32_t id;
 	uint8_t priority;
 	uint32_t user_data[6];
@@ -975,6 +998,7 @@ enum {
 	metadata_op_wb_secure,
 	metadata_op_get_caps,
 	metadata_op_crc,
+	metadata_op_get_ion_fd,
 	metadata_op_max
 };
 
@@ -1008,6 +1032,7 @@ struct msmfb_metadata {
 		uint32_t video_info_code;
 		struct mdss_hw_caps caps;
 		uint8_t secure_en;
+		int fbmem_ionfd;
 	} data;
 };
 
@@ -1095,4 +1120,8 @@ enum {
 	MDP_WRITEBACK_MIRROR_PAUSE,
 	MDP_WRITEBACK_MIRROR_RESUME,
 };
+
+/* let users know that we have been the new struct formats. */
+#define DUAL_DSI
+
 #endif /*_UAPI_MSM_MDP_H_*/

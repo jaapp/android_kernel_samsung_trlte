@@ -75,9 +75,7 @@ enum {
 	MSM_FRONTEND_DAI_MULTIMEDIA7,
 	MSM_FRONTEND_DAI_MULTIMEDIA8,
 	MSM_FRONTEND_DAI_MULTIMEDIA9,
-#ifdef CONFIG_JACK_AUDIO	
-	MSM_FRONTEND_DAI_MULTIMEDIA10,	
-#endif	
+	MSM_FRONTEND_DAI_MULTIMEDIA10,
 	MSM_FRONTEND_DAI_CS_VOICE,
 	MSM_FRONTEND_DAI_VOIP,
 	MSM_FRONTEND_DAI_AFE_RX,
@@ -100,13 +98,8 @@ enum {
 	MSM_FRONTEND_DAI_MAX,
 };
 
-#ifdef CONFIG_JACK_AUDIO
-#define MSM_FRONTEND_DAI_MM_SIZE (MSM_FRONTEND_DAI_MULTIMEDIA10+ 1)
+#define MSM_FRONTEND_DAI_MM_SIZE (MSM_FRONTEND_DAI_MULTIMEDIA10 + 1)
 #define MSM_FRONTEND_DAI_MM_MAX_ID MSM_FRONTEND_DAI_MULTIMEDIA10
-#else
-#define MSM_FRONTEND_DAI_MM_SIZE (MSM_FRONTEND_DAI_MULTIMEDIA9 + 1)
-#define MSM_FRONTEND_DAI_MM_MAX_ID MSM_FRONTEND_DAI_MULTIMEDIA9
-#endif
 
 enum {
 	MSM_BACKEND_DAI_PRI_I2S_RX = 0,
@@ -186,6 +179,8 @@ struct msm_pcm_routing_bdai_data {
 	unsigned int  sample_rate;
 	unsigned int  channel;
 	unsigned int  format;
+	u32 compr_passthr_mode;
+	char *name;
 };
 
 struct msm_pcm_routing_fdai_data {
@@ -202,6 +197,9 @@ void msm_pcm_routing_reg_phy_stream(int fedai_id, int perf_mode, int dspst_id,
 	int stream_type);
 void msm_pcm_routing_reg_psthr_stream(int fedai_id, int dspst_id,
 		int stream_type);
+void msm_pcm_routing_reg_phy_compr_stream(int fedai_id, bool perf_mode,
+					  int dspst_id, int stream_type,
+					  uint32_t compr_passthr);
 
 void msm_pcm_routing_reg_phy_stream_v2(int fedai_id, bool perf_mode,
 				       int dspst_id, int stream_type,

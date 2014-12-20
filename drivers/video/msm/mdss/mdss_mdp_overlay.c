@@ -13,6 +13,7 @@
 
 #define pr_fmt(fmt)	"%s: " fmt, __func__
 
+#include <linux/dma-buf.h>
 #include <linux/dma-mapping.h>
 #include <linux/errno.h>
 #include <linux/kernel.h>
@@ -532,18 +533,34 @@ int mdss_mdp_overlay_pipe_setup(struct msm_fb_data_type *mfd,
 		is_vig_needed = true;
 
 	if (req->id == MSMFB_NEW_REQUEST) {
-		if (req->flags & MDP_OV_PIPE_FORCE_DMA)
-			pipe_type = MDSS_MDP_PIPE_TYPE_DMA;
-		else if (fmt->is_yuv || (req->flags & MDP_OV_PIPE_SHARE) ||
-			is_vig_needed)
+		switch (req->pipe_type) {
+		case PIPE_TYPE_VIG:
 			pipe_type = MDSS_MDP_PIPE_TYPE_VIG;
-		else
+			break;
+		case PIPE_TYPE_RGB:
 			pipe_type = MDSS_MDP_PIPE_TYPE_RGB;
+			break;
+		case PIPE_TYPE_DMA:
+			pipe_type = MDSS_MDP_PIPE_TYPE_DMA;
+			break;
+		case PIPE_TYPE_AUTO:
+		default:
+			if (req->flags & MDP_OV_PIPE_FORCE_DMA)
+				pipe_type = MDSS_MDP_PIPE_TYPE_DMA;
+			else if (fmt->is_yuv ||
+				(req->flags & MDP_OV_PIPE_SHARE) ||
+				is_vig_needed)
+				pipe_type = MDSS_MDP_PIPE_TYPE_VIG;
+			else
+				pipe_type = MDSS_MDP_PIPE_TYPE_RGB;
+			break;
+		}
 
 		pipe = mdss_mdp_pipe_alloc(mixer, pipe_type, left_blend_pipe);
 
 		/* RGB pipes can be used instead of DMA */
-		if (!pipe && (pipe_type == MDSS_MDP_PIPE_TYPE_DMA)) {
+		if ((req->pipe_type == PIPE_TYPE_AUTO) && !pipe &&
+		    (pipe_type == MDSS_MDP_PIPE_TYPE_DMA)) {
 			pr_debug("giving RGB pipe for fb%d. flags:0x%x\n",
 				mfd->index, req->flags);
 			pipe_type = MDSS_MDP_PIPE_TYPE_RGB;
@@ -552,7 +569,8 @@ int mdss_mdp_overlay_pipe_setup(struct msm_fb_data_type *mfd,
 		}
 
 		/* VIG pipes can also support RGB format */
-		if (!pipe && pipe_type == MDSS_MDP_PIPE_TYPE_RGB) {
+		if ((req->pipe_type == PIPE_TYPE_AUTO) && !pipe &&
+		    (pipe_type == MDSS_MDP_PIPE_TYPE_RGB)) {
 			pr_debug("giving ViG pipe for fb%d. flags:0x%x\n",
 				mfd->index, req->flags);
 			pipe_type = MDSS_MDP_PIPE_TYPE_VIG;
@@ -2619,6 +2637,15 @@ static int mdss_fb_get_metadata(struct msm_fb_data_type *mfd,
 		break;
 	case metadata_op_get_caps:
 		ret = mdss_fb_get_hw_caps(mfd, &metadata->data.caps);
+		break;
+	case metadata_op_get_ion_fd:
+		if (mfd->fb_ion_handle) {
+			metadata->data.fbmem_ionfd =
+				dma_buf_fd(mfd->fbmem_buf, 0);
+			if (metadata->data.fbmem_ionfd < 0)
+				pr_err("fd allocation failed. fd = %d\n",
+						metadata->data.fbmem_ionfd);
+		}
 		break;
 	case metadata_op_crc:
 		if (mdss_fb_is_power_off(mfd))
